@@ -91,6 +91,14 @@ library HandUtils {
     {
         /* To be implemented */
     }
+
+    function decodeHand(uint256 _data)
+        pure
+        internal
+        returns (Hand memory _hand)
+    {
+        /* To be implemented */
+    }
 }
 
 contract Tournament is Ownable {
