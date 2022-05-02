@@ -103,14 +103,16 @@ library HandUtils {
 
 contract Tournament is Ownable {
 
-    // Сonstants
+    /* Сonstants */
+
     uint256 immutable public ENTRANCE_FEE;
     uint256 immutable public RAKE_PERCENTAGE;
     bytes32 immutable public SEED_CHECKHASH;
     uint256 constant public TOURNAMENT_DURATION = 21 days;
     uint8 constant TO_BE_REVEALED_BIT = 255;
     
-    // Storage
+    /* Storage */
+
     bool public hasStarted = false;
     bool public hasFinished = false;
     uint48 public finishTimestamp;
@@ -118,6 +120,8 @@ contract Tournament is Ownable {
     uint256 public prizeAmount;
     bytes32 public sharedSeed;
     mapping(address => uint256) public playerData;
+
+    /* Constructor */
 
     constructor(
         uint256 _ENTRANCE_FEE,
@@ -128,6 +132,8 @@ contract Tournament is Ownable {
         RAKE_PERCENTAGE = _RAKE_PERCENTAGE;
         SEED_CHECKHASH = _SEED_CHECKHASH;
     }
+
+    /* Public functions */
 
     function enroll()
         external
@@ -184,6 +190,8 @@ contract Tournament is Ownable {
         require(isSuccess);
     }
 
+    /* Owner functions */
+
     function letTheGameBegin(bytes32 _seed)
         external
         onlyOwner
@@ -204,6 +212,8 @@ contract Tournament is Ownable {
         (bool isSuccess,) = owner().call{ value: rakeAmount }("");
         require(isSuccess);
     }
+
+    /* Modifiers */
 
     modifier isActive() {
         require(hasStarted && !hasFinished, "Tournament not active");
