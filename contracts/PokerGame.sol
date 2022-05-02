@@ -14,7 +14,7 @@ enum Rarity {
 }
 
 enum Combination {
-    ROYAL_FLUSH, STRAIGHT_FLUSH, QUADS, FULL_HOUSE, FLUSH, STRAIGHT, SET, TWO_PAIRS, PAIR, UNDEFINED
+    ROYAL_FLUSH, STRAIGHT_FLUSH, QUADS, FULL_HOUSE, FLUSH, STRAIGHT, SET, TWO_PAIRS, PAIR, NOTHING
 }
 
 struct Card {
@@ -58,6 +58,33 @@ library BitUtils {
     }
 }
 
+library HandUtils {
+
+    function resolveCards(bytes32 _handSeed)
+        pure
+        internal
+        returns (Card[5] memory)
+    {
+
+    }
+
+    function resolveCombination(Card[5] memory _cards)
+        pure
+        internal
+        returns (Combination)
+    {
+        
+    }
+
+    function encodeHand(Hand memory _hand)
+        pure
+        internal
+        returns (uint256)
+    {
+        
+    }
+}
+
 contract Tournament {
 
     // constants
@@ -67,8 +94,8 @@ contract Tournament {
     
     // storage
     address public owner;
-    bool public isRevealed = false;
-    bytes32 public seed;
+    bool public hasStarted = false;
+    bytes32 public sharedSeed;
     mapping(address => uint256) public playerData;
 
     constructor(
@@ -91,20 +118,22 @@ contract Tournament {
     }
 
     function revealHand() external {
-        uint256 data = playerData[msg.sender];
-        require(BitUtils.isBitSet(data, TO_BE_REVEALED_BIT), "Not unrolled or already revealed");
+        require(hasStarted, "Tournament hasn't started yet");
+        uint256 playerSeed = playerData[msg.sender];
+        require(BitUtils.isBitSet(playerSeed, TO_BE_REVEALED_BIT), "Not unrolled or already revealed");
+
     }
 
-    function reveal(bytes32 _seed) external {
+    function start(bytes32 _seed) external {
         require(owner == msg.sender, "Only callable by owner");
         require(keccak256(abi.encode(_seed)) == SEED_CHECKHASH, "Invalid seed provided");
-        seed = _seed;
-        isRevealed = true;
+        sharedSeed = _seed;
+        hasStarted = true;
     }
     
     function withdraw() external {
         require(owner == msg.sender, "Only callable by owner");
-        require(isRevealed, "Unable to withdraw before reveal");
+        require(hasStarted, "Unable to withdraw before start");
         (bool isSuccess,) = owner.call{ value: address(this).balance }("");
         require(isSuccess);
     }
