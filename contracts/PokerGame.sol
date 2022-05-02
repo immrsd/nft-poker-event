@@ -1,95 +1,76 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-// enum Rank {
-//     TWO,
-//     THREE,
-//     FOUR,
-//     FIVE,
-//     SIX,
-//     SEVEN,
-//     EIGHT,
-//     NINE,
-//     TEN,
-//     JACK,
-//     QUEEN,
-//     KING,
-//     ACE
-// }
+enum Rank {
+    TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE
+}
 
-// enum Suit {
-//     CLUBS,
-//     SPADES,
-//     DIAMONDS,
-//     HEARTS 
-// }
+enum Suit {
+    CLUBS, SPADES, DIAMONDS, HEARTS 
+}
 
-library BitChecker {
+enum Rarity {
+    LEGENDARY, EPIC, RARE, COMMON
+}
 
-    function isBitSet(uint256 value, uint8 position)
-        external
-        pure
-        returns (bool)
-    {
-        bool result;
-        assembly {}
-        uint256 mask = 1 << 
-    }
+enum Combination {
+    ROYAL_FLUSH, STRAIGHT_FLUSH, QUADS, FULL_HOUSE, FLUSH, STRAIGHT, SET, TWO_PAIRS, PAIR, UNDEFINED
+}
 
+struct Card {
+    Rarity rarity;
+    Rank rank;
+    Suit suit;
 }
 
 struct Hand {
-    bool isDead;
-    uint8[5] cards;
-    bool isRoyalFlush;
-    bool isFirstRoyalFlush;
-    bool isQuads;
-    bool isFirstQuads;
-    bool isFullHouse;
-    bool isFirstFullHouse;
-    bool isFlush;
-    bool isFirstFlush;
-    bool isStraight;
-    bool isFirstStraight;
+    Combination combination;
+    Card[5] cards;
+    address owner;
 }
 
 contract Tournament {
 
-    Hand[] public hands;
-    uint256 public totalHands;
-    mapping(uint256 => address) public handOwners;
-    mapping(address => uint256) public drawsByAddress;
-    uint256 public ENTRANCE_FEE;
-    uint256 public MAX_ENTRIES_PER_USER;
-    /*
-    1. users enroll
-    2. owner reveals secret
-    3. users relveal hands
-    4. 
+    // constants
+    uint256 immutable public ENTRANCE_FEE;
+    bytes32 immutable public SEED_CHECKHASH;
+    
+    // storage
+    address public owner;
+    bool public isRevealed = false;
+    bytes32 public seed;
+    mapping(address => uint256) public playerData;
 
+    constructor(
+        uint256 _ENTRANCE_FEE,
+        bytes32 _SEED_CHECKHASH
+    ) {
+        ENTRANCE_FEE = _ENTRANCE_FEE;
+        SEED_CHECKHASH = _SEED_CHECKHASH;
+    }
 
-    */
-
-    function enroll(uint256 entriesCount) 
+    function enrollInTournament() 
         external
-        payable 
+        payable
     {
-        require(drawsByAddress[msg.sender] == 0, "Address already enrolled");
-        require(msg.value >= ENTRANCE_FEE * entriesCount);
-        require(entriesCount <= MAX_ENTRIES_PER_USER);
-        drawsByAddress[msg.sender] = entriesCount;
+        require(playerData[msg.sender] == 0, "Already enrolled");
+        require(msg.value >= ENTRANCE_FEE, "Not enough money");
+        uint256 rawHash = uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp)));
+        uint256 playerHash = rawHash & (1 << 255);
+        playerData[msg.sender] = playerHash;
+    }
+
+    function reveal(bytes32 _seed) external {
+        require(owner == msg.sender, "Only callable by owner");
+        require(keccak256(abi.encode(_seed)) == SEED_CHECKHASH, "Invalid seed provided");
+        seed = _seed;
+        isRevealed = true;
     }
     
-    function combine(
-        Hand storage _handToChange, 
-        Hand storage _sourceHand, 
-        uint256 _indexToBeChanged, 
-        uint256 _sourceIndex
-    ) private {
-        require(_indexToBeChanged < 5 && _sourceIndex < 5, "Invalid card index");
-        Card storage inCard = _sourceHand.cards[_sourceIndex];
-        for(uint256 i = 0; i < 5; i++) {
-            require(_handToChange.cards[i] != inCard);
-        }
+    function withdraw() external {
+        require(owner == msg.sender, "Only callable by owner");
+        require(isRevealed, "Unable to withdraw before reveal");
+        (bool isSuccess,) = owner.call{ value: address(this).balance }("");
+        require(isSuccess);
     }
 }
