@@ -32,7 +32,7 @@ struct Hand {
     address owner;
 }
 
-struct Chipleader {
+struct FirstPlace {
     uint16 handPower;
     address leader;
 }
@@ -99,12 +99,14 @@ contract Tournament is Ownable {
     uint256 immutable public ENTRANCE_FEE;
     uint256 immutable public RAKE_PERCENTAGE;
     bytes32 immutable public SEED_CHECKHASH;
+    uint256 constant public TOURNAMENT_DURATION = 21 days;
     uint8 constant TO_BE_REVEALED_BIT = 255;
     
     // Storage
     bool public hasStarted = false;
     bool public didWithdrawRake = false;
-    Chipleader public chipleader;
+    uint48 public finishTimestamp;
+    FirstPlace public firstPlace;
     bytes32 public sharedSeed;
     mapping(address => uint256) public playerData;
 
@@ -146,19 +148,28 @@ contract Tournament is Ownable {
         );
         playerData[msg.sender] = HandUtils.encodeHand(hand);
 
-        // Update chipleader if needed
-        if (hand.power > chipleader.handPower) {
-            chipleader = Chipleader(hand.power, msg.sender);
+        // Update first place if needed
+        if (hand.power > firstPlace.handPower) {
+            firstPlace.handPower = hand.power;
+            firstPlace.leader = msg.sender;
         }
     }
 
+    function withdrawPrize() external {
+        require(hasStarted, "Unable to withdraw before start");
+        require(uint48(block.timestamp) > finishTimestamp, "Too early");
+        require(firstPlace.leader == msg.sender, "Caller is not tournament leader");
+
+    }
+
     function letTheGameBegin(bytes32 _seed)
-        external 
+        external
         onlyOwner
     {
         require(keccak256(abi.encode(_seed)) == SEED_CHECKHASH, "Invalid seed provided");
         sharedSeed = _seed;
         hasStarted = true;
+        finishTimestamp = uint48(block.timestamp + TOURNAMENT_DURATION);
     }
     
     function withdrawRake() 
