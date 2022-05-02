@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 enum Rank {
     TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE
 }
@@ -24,9 +26,15 @@ struct Card {
 }
 
 struct Hand {
+    uint16 power;
     Combination combination;
     Card[5] cards;
     address owner;
+}
+
+struct Chipleader {
+    uint16 handPower;
+    address leader;
 }
 
 library BitUtils {
@@ -65,15 +73,15 @@ library HandUtils {
         internal
         returns (Card[5] memory)
     {
-
+        /* To be implemented */
     }
 
     function resolveCombination(Card[5] memory _cards)
         pure
         internal
-        returns (Combination)
+        returns (Combination combination, uint16 power)
     {
-        
+        /* To be implemented */
     }
 
     function encodeHand(Hand memory _hand)
@@ -81,28 +89,32 @@ library HandUtils {
         internal
         returns (uint256)
     {
-        
+        /* To be implemented */
     }
 }
 
-contract Tournament {
+contract Tournament is Ownable {
 
     // Сonstants
     uint256 immutable public ENTRANCE_FEE;
+    uint256 immutable public RAKE_PERCENTAGE;
     bytes32 immutable public SEED_CHECKHASH;
     uint8 constant TO_BE_REVEALED_BIT = 255;
     
     // Storage
-    address public owner;
     bool public hasStarted = false;
+    bool public didWithdrawRake = false;
+    Chipleader public chipleader;
     bytes32 public sharedSeed;
     mapping(address => uint256) public playerData;
 
     constructor(
         uint256 _ENTRANCE_FEE,
+        uint256 _RAKE_PERCENTAGE,
         bytes32 _SEED_CHECKHASH
     ) {
         ENTRANCE_FEE = _ENTRANCE_FEE;
+        RAKE_PERCENTAGE = _RAKE_PERCENTAGE;
         SEED_CHECKHASH = _SEED_CHECKHASH;
     }
 
@@ -122,27 +134,42 @@ contract Tournament {
         uint256 playerSeed = playerData[msg.sender];
         require(BitUtils.isBitSet(playerSeed, TO_BE_REVEALED_BIT), "Not unrolled or already revealed");
         bytes32 handSeed = keccak256(abi.encodePacked(playerSeed, sharedSeed));
+
+        // Resolve hand
         Card[5] memory cards = HandUtils.resolveCards(handSeed);
-        Combination combination = HandUtils.resolveCombination(cards);
+        (Combination combination, uint16 power) = HandUtils.resolveCombination(cards);
         Hand memory hand = Hand(
+            power,
             combination,
             cards,
             msg.sender
         );
         playerData[msg.sender] = HandUtils.encodeHand(hand);
+
+        // Update chipleader if needed
+        if (hand.power > chipleader.handPower) {
+            chipleader = Chipleader(hand.power, msg.sender);
+        }
     }
 
-    function start(bytes32 _seed) external {
-        require(owner == msg.sender, "Only callable by owner");
+    function letTheGameBegin(bytes32 _seed)
+        external 
+        onlyOwner
+    {
         require(keccak256(abi.encode(_seed)) == SEED_CHECKHASH, "Invalid seed provided");
         sharedSeed = _seed;
         hasStarted = true;
     }
     
-    function withdraw() external {
-        require(owner == msg.sender, "Only callable by owner");
+    function withdrawRake() 
+        external
+        onlyOwner
+    {
         require(hasStarted, "Unable to withdraw before start");
-        (bool isSuccess,) = owner.call{ value: address(this).balance }("");
+        require(!didWithdrawRake, "Already withdrawn");
+        didWithdrawRake = true;
+        uint256 rakeAmount = address(this).balance * RAKE_PERCENTAGE / 100;
+        (bool isSuccess,) = owner().call{ value: rakeAmount }("");
         require(isSuccess);
     }
 }
