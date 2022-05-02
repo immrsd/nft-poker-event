@@ -87,12 +87,12 @@ library HandUtils {
 
 contract Tournament {
 
-    // constants
+    // Сonstants
     uint256 immutable public ENTRANCE_FEE;
     bytes32 immutable public SEED_CHECKHASH;
     uint8 constant TO_BE_REVEALED_BIT = 255;
     
-    // storage
+    // Storage
     address public owner;
     bool public hasStarted = false;
     bytes32 public sharedSeed;
@@ -121,7 +121,15 @@ contract Tournament {
         require(hasStarted, "Tournament hasn't started yet");
         uint256 playerSeed = playerData[msg.sender];
         require(BitUtils.isBitSet(playerSeed, TO_BE_REVEALED_BIT), "Not unrolled or already revealed");
-
+        bytes32 handSeed = keccak256(abi.encodePacked(playerSeed, sharedSeed));
+        Card[5] memory cards = HandUtils.resolveCards(handSeed);
+        Combination combination = HandUtils.resolveCombination(cards);
+        Hand memory hand = Hand(
+            combination,
+            cards,
+            msg.sender
+        );
+        playerData[msg.sender] = HandUtils.encodeHand(hand);
     }
 
     function start(bytes32 _seed) external {
