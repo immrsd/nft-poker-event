@@ -29,11 +29,41 @@ struct Hand {
     address owner;
 }
 
+library BitUtils {
+
+    function setBit(uint256 value, uint8 position)
+        pure
+        internal
+        returns (uint256)
+    {
+        uint256 result;
+        assembly {
+            let mask := shl(position, 1)
+            result := or(value, mask)
+        }
+        return result;
+    }
+
+    function isBitSet(uint256 value, uint8 position)
+        pure
+        internal
+        returns (bool)
+    {
+        bool result;
+        assembly {
+            let mask := shl(position, 1)
+            result := gt(and(value, mask), 0)
+        }
+        return result;
+    }
+}
+
 contract Tournament {
 
     // constants
     uint256 immutable public ENTRANCE_FEE;
     bytes32 immutable public SEED_CHECKHASH;
+    uint8 constant TO_BE_REVEALED_BIT = 255;
     
     // storage
     address public owner;
@@ -56,8 +86,13 @@ contract Tournament {
         require(playerData[msg.sender] == 0, "Already enrolled");
         require(msg.value >= ENTRANCE_FEE, "Not enough money");
         uint256 rawHash = uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp)));
-        uint256 playerHash = rawHash & (1 << 255);
+        uint256 playerHash = BitUtils.setBit(rawHash, TO_BE_REVEALED_BIT);
         playerData[msg.sender] = playerHash;
+    }
+
+    function revealHand() external {
+        uint256 data = playerData[msg.sender];
+        require(BitUtils.isBitSet(data, TO_BE_REVEALED_BIT), "Not unrolled or already revealed");
     }
 
     function reveal(bytes32 _seed) external {
