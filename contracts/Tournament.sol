@@ -104,9 +104,10 @@ contract Tournament is Ownable {
     
     // Storage
     bool public hasStarted = false;
-    bool public didWithdrawRake = false;
+    bool public hasFinished = false;
     uint48 public finishTimestamp;
     FirstPlace public firstPlace;
+    uint256 public prizeAmount;
     bytes32 public sharedSeed;
     mapping(address => uint256) public playerData;
 
@@ -120,21 +121,25 @@ contract Tournament is Ownable {
         SEED_CHECKHASH = _SEED_CHECKHASH;
     }
 
-    function enrollInTournament() 
+    function enroll()
         external
         payable
     {
+        require(!hasStarted, "Tournament already started");
         require(playerData[msg.sender] == 0, "Already enrolled");
         require(msg.value >= ENTRANCE_FEE, "Not enough money");
+
         uint256 rawHash = uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp)));
         uint256 playerHash = BitUtils.setBit(rawHash, TO_BE_REVEALED_BIT);
         playerData[msg.sender] = playerHash;
     }
 
-    function revealHand() external {
-        require(hasStarted, "Tournament hasn't started yet");
+    function revealHand()
+        external
+        isActive
+    {
         uint256 playerSeed = playerData[msg.sender];
-        require(BitUtils.isBitSet(playerSeed, TO_BE_REVEALED_BIT), "Not unrolled or already revealed");
+        require(BitUtils.isBitSet(playerSeed, TO_BE_REVEALED_BIT), "User not unrolled or hand already revealed");
         bytes32 handSeed = keccak256(abi.encodePacked(playerSeed, sharedSeed));
 
         // Resolve hand
@@ -155,11 +160,20 @@ contract Tournament is Ownable {
         }
     }
 
-    function withdrawPrize() external {
-        require(hasStarted, "Unable to withdraw before start");
+    function withdrawPrize() 
+        external
+        isActive
+    {
         require(uint48(block.timestamp) > finishTimestamp, "Too early");
         require(firstPlace.leader == msg.sender, "Caller is not tournament leader");
 
+        // Update state
+        hasFinished = true;
+        prizeAmount = 0;
+
+        // Transfer prize
+        (bool isSuccess,) = msg.sender.call{ value: prizeAmount }("");
+        require(isSuccess);
     }
 
     function letTheGameBegin(bytes32 _seed)
@@ -170,6 +184,7 @@ contract Tournament is Ownable {
         sharedSeed = _seed;
         hasStarted = true;
         finishTimestamp = uint48(block.timestamp + TOURNAMENT_DURATION);
+        prizeAmount = address(this).balance * (100 - RAKE_PERCENTAGE) / 100;
     }
     
     function withdrawRake() 
@@ -177,10 +192,13 @@ contract Tournament is Ownable {
         onlyOwner
     {
         require(hasStarted, "Unable to withdraw before start");
-        require(!didWithdrawRake, "Already withdrawn");
-        didWithdrawRake = true;
-        uint256 rakeAmount = address(this).balance * RAKE_PERCENTAGE / 100;
+        uint256 rakeAmount = address(this).balance - prizeAmount;
         (bool isSuccess,) = owner().call{ value: rakeAmount }("");
         require(isSuccess);
+    }
+
+    modifier isActive() {
+        require(hasStarted && !hasFinished, "Tournament not active");
+        _;
     }
 }
