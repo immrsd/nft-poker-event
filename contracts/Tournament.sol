@@ -182,6 +182,18 @@ contract Tournament is Ownable {
         /* Allow increasing prize amount by sending ETH to contract */
     }
 
+    function currentPrizePool() 
+        external 
+        view 
+        returns (uint256)
+    {
+        if (hasStarted) {
+            return prizeAmount;
+        } else {
+            return address(this).balance * (100 - RAKE_PERCENTAGE) / 100;
+        }
+    }
+
     function withdrawPrize() 
         external
         isActive
