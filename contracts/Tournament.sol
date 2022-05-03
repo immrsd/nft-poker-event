@@ -174,6 +174,13 @@ contract Tournament is Ownable {
         }
     }
 
+    function addPrizeMoney() 
+        external 
+        payable
+    {
+        /* Allow sending ETH to contract */
+    }
+
     function withdrawPrize() 
         external
         isActive
