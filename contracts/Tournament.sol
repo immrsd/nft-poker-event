@@ -178,7 +178,8 @@ contract Tournament is Ownable {
         external 
         payable
     {
-        /* Allow sending ETH to contract */
+        require(!hasFinished, "Tournament already finished");
+        /* Allow increasing prize amount by sending ETH to contract */
     }
 
     function withdrawPrize() 
