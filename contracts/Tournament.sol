@@ -148,17 +148,20 @@ contract Tournament is ERC721Enumerable, Ownable {
 
     /* Public functions */
 
-    function enroll()
-        external
-        payable
-    {
+    function enroll(uint256 _entriesCount) external payable {
+        require(_entriesCount <= MAX_ENTRIES_PER_PLAYER);
         require(!hasStarted, "Tournament already started");
-        require(playerData[msg.sender] == 0, "Already enrolled");
-        require(msg.value >= ENTRANCE_FEE, "Not enough money");
+        require(msg.value >= ENTRANCE_FEE * _entriesCount, "Not enough money");
 
-        uint256 rawHash = uint256(keccak256(abi.encodePacked(msg.sender, block.timestamp)));
-        uint256 playerHash = BitUtils.setBit(rawHash, TO_BE_REVEALED_BIT);
-        playerData[msg.sender] = playerHash;
+        bytes32 playerHash = keccak256(abi.encodePacked(msg.sender, block.timestamp));
+        uint256 totalCount = allHands.length;
+        for (uint256 entryIndex = 0; entryIndex < _entriesCount; entryIndex++) {
+            _registerEntry(
+                playerHash, 
+                entryIndex, 
+                totalCount + entryIndex
+            );
+        }
     }
 
     function revealHand()
