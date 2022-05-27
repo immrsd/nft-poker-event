@@ -257,6 +257,46 @@ contract Tournament is ERC721Enumerable, Ownable {
         allHands[_handId] = modifiedHash;
         _safeMint(msg.sender, _handId);
     }
+
+    function _revealHand(uint256 _handId) private {
+        uint256 handSeed = allHands[_handId];
+        if (BitUtils.isBitSet(handSeed, TO_BE_REVEALED_BIT)) {
+            return; // Hand has been already revealed
+        }
+        bytes32 finalSeed = keccak256(abi.encodePacked(handSeed, sharedSeed));
+
+        // Resolve hand
+        Card[5] memory cards = HandUtils.resolveCards(finalSeed);
+        (Combination combination, uint16 power) = HandUtils.resolveCombination(cards);
+        Hand memory hand = Hand(
+            false,
+            power,
+            combination,
+            cards,
+            msg.sender
+        );
+
+        // Update leader if needed
+        if (hand.power > leader.handPower) {
+            _clearCurrentLeadersStatus();
+            hand.isLeader = true;
+            leader = Leader(msg.sender, hand.power, _handId);
+        }
+
+        allHands[_handId] = HandUtils.encodeHand(hand);
+    }
+
+    function _clearCurrentLeadersStatus() private {
+        if (leader.owner == address(0)) {
+            return;
+        }
+        uint256 id = leader.handId;
+        uint256 data = allHands[id];
+        Hand memory hand = HandUtils.decodeHand(data);
+        hand.isLeader = false;
+        allHands[id] = HandUtils.encodeHand(hand);
+    }
+
     /* Modifiers */
 
     modifier isActive() {
