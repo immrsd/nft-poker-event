@@ -22,15 +22,17 @@ struct Card {
 }
 
 struct Hand {
+    bool isLeader;
     uint16 power;
     Combination combination;
     Card[5] cards;
     address owner;
 }
 
-struct FirstPlace {
+struct Leader {
+    address owner;
     uint16 handPower;
-    address leader;
+    uint256 handId;
 }
 
 library BitUtils {
