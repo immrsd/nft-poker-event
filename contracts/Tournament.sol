@@ -249,6 +249,14 @@ contract Tournament is ERC721Enumerable, Ownable {
         require(isSuccess);
     }
 
+    /* Private functions */
+
+    function _registerEntry(bytes32 _playerHash, uint256 _entryIndex, uint256 _handId) private {
+        uint256 handHash = uint256(keccak256(abi.encodePacked(_playerHash, _entryIndex)));
+        uint256 modifiedHash = BitUtils.setBit(handHash, TO_BE_REVEALED_BIT);
+        allHands[_handId] = modifiedHash;
+        _safeMint(msg.sender, _handId);
+    }
     /* Modifiers */
 
     modifier isActive() {
