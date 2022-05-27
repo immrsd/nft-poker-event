@@ -12,16 +12,11 @@ enum Suit {
     CLUBS, SPADES, DIAMONDS, HEARTS 
 }
 
-enum Rarity {
-    LEGENDARY, EPIC, RARE, COMMON
-}
-
 enum Combination {
     ROYAL_FLUSH, STRAIGHT_FLUSH, QUADS, FULL_HOUSE, FLUSH, STRAIGHT, SET, TWO_PAIRS, PAIR, NOTHING
 }
 
 struct Card {
-    Rarity rarity;
     Rank rank;
     Suit suit;
 }
