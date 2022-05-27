@@ -50,6 +50,19 @@ library BitUtils {
         return result;
     }
 
+    function nullifyBit(uint256 value, uint8 position)
+        pure
+        internal
+        returns (uint256)
+    {
+        uint256 result;
+        assembly {
+            let mask := not(shl(position, 1))
+            result := and(value, mask)
+        }
+        return result;
+    } 
+
     function isBitSet(uint256 value, uint8 position)
         pure
         internal
