@@ -129,10 +129,10 @@ contract Tournament is ERC721Enumerable, Ownable {
     bool public hasStarted = false;
     bool public hasFinished = false;
     uint48 public finishTimestamp;
-    FirstPlace public firstPlace;
+    Leader public leader;
     uint256 public prizeAmount;
     bytes32 public sharedSeed;
-    mapping(address => uint256) public playerData;
+    uint256[] public allHands;
 
     /* Constructor */
 
@@ -140,7 +140,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         uint256 _ENTRANCE_FEE,
         uint256 _RAKE_PERCENTAGE,
         bytes32 _SEED_CHECKHASH
-    ) {
+    ) ERC721("PokerNFT", "PKR") {
         ENTRANCE_FEE = _ENTRANCE_FEE;
         RAKE_PERCENTAGE = _RAKE_PERCENTAGE;
         SEED_CHECKHASH = _SEED_CHECKHASH;
@@ -164,29 +164,13 @@ contract Tournament is ERC721Enumerable, Ownable {
         }
     }
 
-    function revealHand()
-        external
-        isActive
-    {
-        uint256 playerSeed = playerData[msg.sender];
-        require(BitUtils.isBitSet(playerSeed, TO_BE_REVEALED_BIT), "User not unrolled or hand already revealed");
-        bytes32 handSeed = keccak256(abi.encodePacked(playerSeed, sharedSeed));
+    function reveal() external isActive {
+        address player = msg.sender;
+        uint256 handCount = balanceOf(player);
 
-        // Resolve hand
-        Card[5] memory cards = HandUtils.resolveCards(handSeed);
-        (Combination combination, uint16 power) = HandUtils.resolveCombination(cards);
-        Hand memory hand = Hand(
-            power,
-            combination,
-            cards,
-            msg.sender
-        );
-        playerData[msg.sender] = HandUtils.encodeHand(hand);
-
-        // Update first place if needed
-        if (hand.power > firstPlace.handPower) {
-            firstPlace.handPower = hand.power;
-            firstPlace.leader = msg.sender;
+        for (uint256 i = 0; i < handCount; i++) {
+            uint256 handId = tokenOfOwnerByIndex(player, i);
+            _revealHand(handId);
         }
     }
 
@@ -215,7 +199,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         isActive
     {
         require(uint48(block.timestamp) > finishTimestamp, "Too early");
-        require(firstPlace.leader == msg.sender, "Caller is not tournament leader");
+        require(leader.owner == msg.sender, "Caller is not tournament leader");
 
         // Update state
         hasFinished = true;
