@@ -112,7 +112,7 @@ library HandUtils {
     }
 }
 
-contract Tournament is Ownable {
+contract Tournament is ERC721Enumerable, Ownable {
 
     /* Сonstants */
 
