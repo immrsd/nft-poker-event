@@ -16,6 +16,7 @@ enum Combination {
     ROYAL_FLUSH, STRAIGHT_FLUSH, QUADS, FULL_HOUSE, FLUSH, STRAIGHT, SET, TWO_PAIRS, PAIR, NOTHING
 }
 
+}
 struct Card {
     Rank rank;
     Suit suit;
