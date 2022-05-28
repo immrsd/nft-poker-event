@@ -2,6 +2,8 @@ import { ethers } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { Tournament__factory } from "../typechain";
+import { BigNumber } from "ethers";
+import { assert } from "console";
 
 chai.use(solidity);
 const { expect } = chai;
