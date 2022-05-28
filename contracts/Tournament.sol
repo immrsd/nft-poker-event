@@ -22,15 +22,15 @@ struct Card {
 }
 
 struct Hand {
-    bool isLeader;
+    bool isChipleader;
     uint16 power;
     Combination combination;
     Card[5] cards;
     address owner;
 }
 
-struct Leader {
-    address owner;
+struct Chipleader {
+    address addr;
     uint16 handPower;
     uint256 handId;
 }
@@ -129,7 +129,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     bool public hasStarted = false;
     bool public hasFinished = false;
     uint48 public finishTimestamp;
-    Leader public leader;
+    Chipleader public chipleader;
     uint256 public prizeAmount;
     bytes32 public sharedSeed;
     uint256[] public allHands;
@@ -140,7 +140,9 @@ contract Tournament is ERC721Enumerable, Ownable {
         uint256 _ENTRANCE_FEE,
         uint256 _RAKE_PERCENTAGE,
         bytes32 _SEED_CHECKHASH
-    ) ERC721("PokerNFT", "PKR") {
+    ) 
+        ERC721("PokerNFT", "PKR") 
+    {
         ENTRANCE_FEE = _ENTRANCE_FEE;
         RAKE_PERCENTAGE = _RAKE_PERCENTAGE;
         SEED_CHECKHASH = _SEED_CHECKHASH;
@@ -164,7 +166,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         }
     }
 
-    function reveal() external isActive {
+    function showdown() external isActive {
         address player = msg.sender;
         uint256 handCount = balanceOf(player);
 
@@ -199,7 +201,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         isActive
     {
         require(uint48(block.timestamp) > finishTimestamp, "Too early");
-        require(leader.owner == msg.sender, "Caller is not tournament leader");
+        require(chipleader.addr == msg.sender, "Caller is not tournament chipleader");
 
         // Update state
         hasFinished = true;
@@ -260,24 +262,24 @@ contract Tournament is ERC721Enumerable, Ownable {
             msg.sender
         );
 
-        // Update leader if needed
-        if (hand.power > leader.handPower) {
-            _clearCurrentLeadersStatus();
-            hand.isLeader = true;
-            leader = Leader(msg.sender, hand.power, _handId);
+        // Update chipleader if needed
+        if (hand.power > chipleader.handPower) {
+            _clearCurrentChipleaderStatus();
+            hand.isChipleader = true;
+            chipleader = Chipleader(msg.sender, hand.power, _handId);
         }
 
         allHands[_handId] = HandUtils.encodeHand(hand);
     }
 
-    function _clearCurrentLeadersStatus() private {
-        if (leader.owner == address(0)) {
+    function _clearCurrentChipleaderStatus() private {
+        if (chipleader.addr == address(0)) {
             return;
         }
-        uint256 id = leader.handId;
+        uint256 id = chipleader.handId;
         uint256 data = allHands[id];
         Hand memory hand = HandUtils.decodeHand(data);
-        hand.isLeader = false;
+        hand.isChipleader = false;
         allHands[id] = HandUtils.encodeHand(hand);
     }
 
