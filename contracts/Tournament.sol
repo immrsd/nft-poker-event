@@ -37,8 +37,8 @@ struct Hand {
 }
 
 struct Chipleader {
-    address addr;
     uint16 handPower;
+    address addr;
     uint256 handId;
 }
 
@@ -124,7 +124,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     /* Сonstants */
 
     uint256 constant public TOURNAMENT_DURATION = 21 days;
-    uint256 constant public MAX_ENTRIES_PER_PLAYER = 20;
+    uint256 constant public MAX_ENTRIES_PER_PLAYER = 50;
     uint8 constant TO_BE_REVEALED_BIT = 255;
 
     uint256 immutable public ENTRANCE_FEE;
@@ -133,8 +133,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     
     /* Storage */
 
-    bool public hasStarted = false;
-    bool public hasFinished = false;
+    Stage public stage = Stage.INITIAL;
     uint48 public finishTimestamp;
     Chipleader public chipleader;
     uint256 public prizeAmount;
@@ -158,14 +157,16 @@ contract Tournament is ERC721Enumerable, Ownable {
     /* Public functions */
 
     function enroll(uint256 _entriesCount) external payable {
-        require(_entriesCount <= MAX_ENTRIES_PER_PLAYER);
-        require(!hasStarted, "Tournament already started");
+        require(stage == Stage.REGISTRATION, "Registration not active");
         require(msg.value >= ENTRANCE_FEE * _entriesCount, "Not enough money");
+        address player = msg.sender;
+        require(_entriesCount + balanceOf(player) <= MAX_ENTRIES_PER_PLAYER, "Limit exceeded");
 
-        bytes32 playerHash = keccak256(abi.encodePacked(msg.sender, block.timestamp));
+        bytes32 playerHash = keccak256(abi.encodePacked(player, block.timestamp));
         uint256 totalCount = allHands.length;
         for (uint256 entryIndex = 0; entryIndex < _entriesCount; entryIndex++) {
             _registerEntry(
+                player,
                 playerHash, 
                 entryIndex, 
                 totalCount + entryIndex
@@ -173,13 +174,14 @@ contract Tournament is ERC721Enumerable, Ownable {
         }
     }
 
-    function showdown() external isActive {
+    function showdown() external {
+        require(stage == Stage.RUNNING, "Tournament is not active");
         address player = msg.sender;
         uint256 handCount = balanceOf(player);
 
         for (uint256 i = 0; i < handCount; i++) {
             uint256 handId = tokenOfOwnerByIndex(player, i);
-            _revealHand(handId);
+            _revealHand(player, handId);
         }
     }
 
@@ -187,35 +189,34 @@ contract Tournament is ERC721Enumerable, Ownable {
         external 
         payable
     {
-        require(!hasFinished, "Tournament already finished");
-        /* Allow increasing prize amount by sending ETH to contract */
+        require(stage != Stage.FINISHED, "Tournament already finished");
+        /* Allow to increase prize amount by sending ETH to contract */
     }
 
-    function currentPrizePool() 
+    function prizeMoney() 
         external 
         view 
         returns (uint256)
     {
-        if (hasStarted) {
+        if (stage == Stage.FINISHED) {
             return prizeAmount;
         } else {
-            return address(this).balance * (100 - RAKE_PERCENTAGE) / 100;
+            return _calculatePrizeAmount();
         }
     }
 
-    function withdrawPrize() 
-        external
-        isActive
-    {
+    function withdrawPrize() external {
+        require(stage == Stage.RUNNING, "Tournament is not active");
         require(uint48(block.timestamp) > finishTimestamp, "Too early");
-        require(chipleader.addr == msg.sender, "Caller is not tournament chipleader");
+        require(chipleader.addr == msg.sender, "You're not chipleader");
 
         // Update state
-        hasFinished = true;
-        prizeAmount = 0;
+        uint256 prize = _calculatePrizeAmount();
+        prizeAmount = prize;
+        stage = Stage.FINISHED;
 
         // Transfer prize
-        (bool isSuccess,) = msg.sender.call{ value: prizeAmount }("");
+        (bool isSuccess,) = msg.sender.call{ value: prize }("");
         require(isSuccess);
     }
 
@@ -227,7 +228,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     {
         require(keccak256(abi.encode(_seed)) == SEED_CHECKHASH, "Invalid seed provided");
         sharedSeed = _seed;
-        hasStarted = true;
+        stage = Stage.RUNNING;
         finishTimestamp = uint48(block.timestamp + TOURNAMENT_DURATION);
         prizeAmount = address(this).balance * (100 - RAKE_PERCENTAGE) / 100;
     }
@@ -236,7 +237,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         external
         onlyOwner
     {
-        require(hasStarted, "Unable to withdraw before start");
+        require(stage == Stage.RUNNING || stage == Stage.FINISHED, "Unable to withdraw before start");
         uint256 rakeAmount = address(this).balance - prizeAmount;
         (bool isSuccess,) = owner().call{ value: rakeAmount }("");
         require(isSuccess);
@@ -244,17 +245,32 @@ contract Tournament is ERC721Enumerable, Ownable {
 
     /* Private functions */
 
-    function _registerEntry(bytes32 _playerHash, uint256 _entryIndex, uint256 _handId) private {
+    function _calculatePrizeAmount() 
+        private 
+        view 
+        returns (uint256) 
+    {
+        uint256 balance = address(this).balance;
+        uint256 rake = (balance * RAKE_PERCENTAGE) / 100;
+        return balance - rake;
+    }
+
+    function _registerEntry(
+        address _player, 
+        bytes32 _playerHash, 
+        uint256 _entryIndex, 
+        uint256 _handId
+    ) private {
         uint256 handHash = uint256(keccak256(abi.encodePacked(_playerHash, _entryIndex)));
         uint256 modifiedHash = BitUtils.setBit(handHash, TO_BE_REVEALED_BIT);
         allHands[_handId] = modifiedHash;
-        _safeMint(msg.sender, _handId);
+        _safeMint(_player, _handId);
     }
 
-    function _revealHand(uint256 _handId) private {
+    function _revealHand(address _player, uint256 _handId) private {
         uint256 handSeed = allHands[_handId];
         if (BitUtils.isBitSet(handSeed, TO_BE_REVEALED_BIT)) {
-            return; // Hand has been already revealed
+            return; // Hand has already been revealed
         }
         bytes32 finalSeed = keccak256(abi.encodePacked(handSeed, sharedSeed));
 
@@ -266,14 +282,14 @@ contract Tournament is ERC721Enumerable, Ownable {
             power,
             combination,
             cards,
-            msg.sender
+            _player
         );
 
         // Update chipleader if needed
         if (hand.power > chipleader.handPower) {
             _clearCurrentChipleaderStatus();
             hand.isChipleader = true;
-            chipleader = Chipleader(msg.sender, hand.power, _handId);
+            chipleader = Chipleader(hand.power, _player, _handId);
         }
 
         allHands[_handId] = HandUtils.encodeHand(hand);
@@ -288,12 +304,5 @@ contract Tournament is ERC721Enumerable, Ownable {
         Hand memory hand = HandUtils.decodeHand(data);
         hand.isChipleader = false;
         allHands[id] = HandUtils.encodeHand(hand);
-    }
-
-    /* Modifiers */
-
-    modifier isActive() {
-        require(hasStarted && !hasFinished, "Tournament not active");
-        _;
     }
 }
