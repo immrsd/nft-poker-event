@@ -125,7 +125,7 @@ contract Tournament is ERC721Enumerable, Ownable {
 
     uint256 constant public TOURNAMENT_DURATION = 21 days;
     uint256 constant public MAX_ENTRIES_PER_PLAYER = 50;
-    uint8 constant TO_BE_REVEALED_BIT = 255;
+    uint8 constant private TO_BE_REVEALED_BIT = 255;
 
     uint256 immutable public ENTRANCE_FEE;
     uint256 immutable public RAKE_PERCENTAGE;
