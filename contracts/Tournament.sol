@@ -185,6 +185,7 @@ contract Tournament is ERC721Enumerable, Ownable {
                 totalCount + entryIndex
             );
         }
+        emit NewPlayer(player, _entriesCount);
     }
 
     function showdown() external {
@@ -204,6 +205,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     {
         require(stage != Stage.FINISHED, "Tournament already finished");
         /* Allow to increase prize amount by sending ETH to contract */
+        emit PrizeMoneyAdded(msg.sender, msg.value, _calculatePrizeAmount());
     }
 
     function prizeMoney() 
@@ -231,10 +233,12 @@ contract Tournament is ERC721Enumerable, Ownable {
         // Transfer prize
         (bool isSuccess,) = msg.sender.call{ value: prize }("");
         require(isSuccess);
+        emit TournamentFinish(_chipleader.addr, _chipleader.handId, _chipleader.handPower, _prizeAmount);
     }
 
     /* Owner functions */
 
+        emit PublicRegistrationStart();
     function letTheGameBegin(bytes32 _seed)
         external
         onlyOwner
@@ -244,6 +248,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         stage = Stage.RUNNING;
         finishTimestamp = uint48(block.timestamp + TOURNAMENT_DURATION);
         prizeAmount = address(this).balance * (100 - RAKE_PERCENTAGE) / 100;
+        emit TournamentStart();
     }
     
     function withdrawRake() 
@@ -254,6 +259,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         uint256 rakeAmount = address(this).balance - prizeAmount;
         (bool isSuccess,) = owner().call{ value: rakeAmount }("");
         require(isSuccess);
+        emit RakeWithdrawal(msg.sender, rakeAmount);
     }
 
     /* Private functions */
@@ -303,9 +309,11 @@ contract Tournament is ERC721Enumerable, Ownable {
             _clearCurrentChipleaderStatus();
             hand.isChipleader = true;
             chipleader = Chipleader(hand.power, _player, _handId);
+            emit NewChipleader(_player, _handId, hand.power);
         }
 
         allHands[_handId] = HandUtils.encodeHand(hand);
+        emit HandReveal(_player, _handId, hand.power);
     }
 
     function _clearCurrentChipleaderStatus() private {
