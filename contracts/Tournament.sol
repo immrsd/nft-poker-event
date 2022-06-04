@@ -138,6 +138,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     Stage public stage = Stage.INITIAL;
     uint48 public finishTimestamp;
     Chipleader public chipleader;
+    bytes32 private merkleRoot;
     uint256 public prizeAmount;
     bytes32 public sharedSeed;
     uint256[] public allHands;
@@ -158,13 +159,15 @@ contract Tournament is ERC721Enumerable, Ownable {
     constructor(
         uint256 _ENTRANCE_FEE,
         uint256 _RAKE_PERCENTAGE,
-        bytes32 _SEED_CHECKHASH
+        bytes32 _SEED_CHECKHASH,
+        bytes32 _merkleRoot
     ) 
         ERC721("PokerNFT", "PKR") 
     {
         ENTRANCE_FEE = _ENTRANCE_FEE;
         RAKE_PERCENTAGE = _RAKE_PERCENTAGE;
         SEED_CHECKHASH = _SEED_CHECKHASH;
+        merkleRoot = _merkleRoot;
     }
 
     /* Public functions */
