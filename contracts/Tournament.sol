@@ -205,6 +205,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     {
         /* Allow to increase prize amount by sending ETH to contract */
         require(stage != Stage.FINISHED, "Already finished");
+        require(msg.value > 0, "Nothing to add");
         emit PrizeMoneyAdded(msg.sender, msg.value, _calculatePrizeAmount());
     }
 
