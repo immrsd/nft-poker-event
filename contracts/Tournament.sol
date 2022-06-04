@@ -189,7 +189,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     }
 
     function showdown() external {
-        require(stage == Stage.RUNNING, "Tournament is not active");
+        require(stage == Stage.RUNNING, "Not active yet");
         address player = msg.sender;
         uint256 handCount = balanceOf(player);
 
@@ -203,8 +203,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         external 
         payable
     {
-        require(stage != Stage.FINISHED, "Tournament already finished");
         /* Allow to increase prize amount by sending ETH to contract */
+        require(stage != Stage.FINISHED, "Already finished");
         emit PrizeMoneyAdded(msg.sender, msg.value, _calculatePrizeAmount());
     }
 
@@ -243,7 +243,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         external
         onlyOwner
     {
-        require(keccak256(abi.encode(_seed)) == SEED_CHECKHASH, "Invalid seed provided");
+        require(keccak256(abi.encode(_seed)) == SEED_CHECKHASH, "Invalid seed");
         sharedSeed = _seed;
         stage = Stage.RUNNING;
         finishTimestamp = uint48(block.timestamp + TOURNAMENT_DURATION);
@@ -255,8 +255,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         external
         onlyOwner
     {
-        require(stage == Stage.RUNNING || stage == Stage.FINISHED, "Unable to withdraw before start");
-        uint256 rakeAmount = address(this).balance - prizeAmount;
+        require(stage == Stage.RUNNING || stage == Stage.FINISHED, "Too early");
+        require(!didWithdrawRake, "Already withdrawn");
         (bool isSuccess,) = owner().call{ value: rakeAmount }("");
         require(isSuccess);
         emit RakeWithdrawal(msg.sender, rakeAmount);
