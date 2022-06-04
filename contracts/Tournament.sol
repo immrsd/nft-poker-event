@@ -224,15 +224,16 @@ contract Tournament is ERC721Enumerable, Ownable {
     function withdrawPrize() external {
         require(stage == Stage.RUNNING, "Tournament is not active");
         require(uint48(block.timestamp) > finishTimestamp, "Too early");
-        require(chipleader.addr == msg.sender, "You're not chipleader");
+        Chipleader memory _chipleader = chipleader;
+        require(_chipleader.addr == msg.sender, "You're not chipleader");
 
         // Update state
-        uint256 prize = _calculatePrizeAmount();
-        prizeAmount = prize;
-        stage = Stage.FINISHED;
+        uint256 _prizeAmount = _calculatePrizeAmount();
+        prizeAmount = _prizeAmount;
+        stage = Stage.FINISHED; // mutates state before external call
 
         // Transfer prize
-        (bool isSuccess,) = msg.sender.call{ value: prize }("");
+        (bool isSuccess,) = msg.sender.call{ value: _prizeAmount }("");
         require(isSuccess);
         emit TournamentFinish(_chipleader.addr, _chipleader.handId, _chipleader.handPower, _prizeAmount);
     }
