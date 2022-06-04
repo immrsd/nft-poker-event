@@ -273,12 +273,12 @@ contract Tournament is ERC721Enumerable, Ownable {
         merkleRoot = _newMerkleRoot;
     }
 
-    function openPublicRegistration()
+    function openForPublic()
         external
         onlyOwner
     {
-        require(!isPublicRegistrationOpen, "Already opened");
-        isPublicRegistrationOpen = true;
+        require(whitelistedOnly, "Already opened");
+        whitelistedOnly = false;
         emit PublicRegistrationStart();
     }
 
