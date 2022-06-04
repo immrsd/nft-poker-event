@@ -267,6 +267,9 @@ contract Tournament is ERC721Enumerable, Ownable {
     {
         require(stage == Stage.RUNNING || stage == Stage.FINISHED, "Too early");
         require(!didWithdrawRake, "Already withdrawn");
+        uint256 _prizeAmount = _calculatePrizeAmount();
+        uint256 rakeAmount = address(this).balance - _prizeAmount;
+        didWithdrawRake = true; // mutates state before external call
         (bool isSuccess,) = owner().call{ value: rakeAmount }("");
         require(isSuccess);
         emit RakeWithdrawal(msg.sender, rakeAmount);
