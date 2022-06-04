@@ -133,6 +133,8 @@ contract Tournament is ERC721Enumerable, Ownable {
     
     /* Storage */
 
+    bool public isPublicRegistrationOpen = false;
+    bool public didWithdrawRake = false;
     Stage public stage = Stage.INITIAL;
     uint48 public finishTimestamp;
     Chipleader public chipleader;
