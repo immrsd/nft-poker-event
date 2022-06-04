@@ -316,11 +316,11 @@ contract Tournament is ERC721Enumerable, Ownable {
 
     function _registerEntry(
         address _player, 
-        bytes32 _playerHash, 
+        bytes32 _baseHash, 
         uint256 _entryIndex, 
         uint256 _handId
     ) private {
-        uint256 handHash = uint256(keccak256(abi.encodePacked(_playerHash, _entryIndex)));
+        uint256 handHash = uint256(keccak256(abi.encodePacked(_baseHash, _entryIndex)));
         uint256 modifiedHash = BitUtils.setBit(handHash, TO_BE_REVEALED_BIT);
         allHands[_handId] = modifiedHash;
         _safeMint(_player, _handId);
