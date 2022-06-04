@@ -247,6 +247,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         external
         onlyOwner
     {
+        require(stage == Stage.INITIAL);
         merkleRoot = _newMerkleRoot;
     }
 
