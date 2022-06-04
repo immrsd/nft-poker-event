@@ -175,8 +175,10 @@ contract Tournament is ERC721Enumerable, Ownable {
 
     function enroll(uint256 _entriesCount, bytes32[] calldata _merkleProof) external payable {
         require(msg.value >= ENTRANCE_FEE * _entriesCount, "Not enough money");
+        require(stage == Stage.REGISTRATION, "Registration not active");
         address player = msg.sender;
-        checkEnrollEligibility(player, _entriesCount, _merkleProof);
+        require(_entriesCount + balanceOf(player) <= MAX_ENTRIES_PER_PLAYER, "Entry limit exceeded");
+        require(isEligible(player, _merkleProof), "Whitelisted only");
 
         bytes32 baseHash = keccak256(abi.encodePacked(player, block.timestamp));
         uint256 totalCount = allHands.length;
@@ -191,24 +193,18 @@ contract Tournament is ERC721Enumerable, Ownable {
         emit NewPlayer(player, _entriesCount);
     }
 
-    function checkEnrollEligibility(
-        address _player,
-        uint256 _entriesCount,
-        bytes32[] calldata _merkleProof
-    )
+    function isEligible(address _player, bytes32[] calldata _merkleProof)
         public
         view
         returns (bool)
     {
-        require(stage == Stage.REGISTRATION, "Registration not active");
-        require(_entriesCount + balanceOf(_player) <= MAX_ENTRIES_PER_PLAYER, "Entry limit exceeded");
         if (whitelistedOnly) {
             bool isWhitelisted = MerkleProof.verify(
                 _merkleProof,
                 merkleRoot,
                 keccak256(abi.encodePacked(_player))
             );
-            require(isWhitelisted, "Whitelisted only");
+            return isWhitelisted;
         }
         return true;
     }
