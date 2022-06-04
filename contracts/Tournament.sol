@@ -298,7 +298,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         external
         onlyOwner
     {
-        require(stage == Stage.RUNNING || stage == Stage.FINISHED, "Too early");
+        require(stage == Stage.RUNNING || stage == Stage.FINISHED, "Invalid stage");
         require(!didWithdrawRake, "Already withdrawn");
         uint256 _prizeAmount = _calculatePrizeAmount();
         uint256 rakeAmount = address(this).balance - _prizeAmount;
