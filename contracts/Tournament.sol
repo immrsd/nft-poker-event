@@ -240,7 +240,15 @@ contract Tournament is ERC721Enumerable, Ownable {
 
     /* Owner functions */
 
+    function openPublicRegistration()
+        external
+        onlyOwner
+    {
+        require(!isPublicRegistrationOpen, "Already opened");
+        isPublicRegistrationOpen = true;
         emit PublicRegistrationStart();
+    }
+
     function letTheGameBegin(bytes32 _seed)
         external
         onlyOwner
