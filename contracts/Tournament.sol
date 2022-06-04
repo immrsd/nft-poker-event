@@ -2,6 +2,7 @@
 pragma solidity 0.8.14;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 enum Rank {
@@ -133,7 +134,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     
     /* Storage */
 
-    bool public isPublicRegistrationOpen = false;
+    bool public whitelistedOnly = true;
     bool public didWithdrawRake = false;
     Stage public stage = Stage.INITIAL;
     uint48 public finishTimestamp;
@@ -197,9 +198,19 @@ contract Tournament is ERC721Enumerable, Ownable {
     )
         public
         view
+        returns (bool)
     {
         require(stage == Stage.REGISTRATION, "Registration not active");
         require(_entriesCount + balanceOf(_player) <= MAX_ENTRIES_PER_PLAYER, "Entry limit exceeded");
+        if (whitelistedOnly) {
+            bool isWhitelisted = MerkleProof.verify(
+                _merkleProof,
+                merkleRoot,
+                keccak256(abi.encodePacked(_player))
+            );
+            require(isWhitelisted, "Whitelisted only");
+        }
+        return true;
     }
 
     function showdown() external {
