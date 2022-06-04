@@ -99,5 +99,25 @@ describe("Token", () => {
         expect(await contract.isEligible(user, proof)).to.eq(true)
       })
     })
+
+    it("Should not allow not whitelisted users when public registration is closed", async () => {
+      const [, user1, user2, user3]: SignerWithAddress[] = await ethers.getSigners();
+      [user1, user2, user3].forEach(async (user) => {
+        const badProof = merkleSetup.tree.getHexProof(keccak256(user.address));
+        // expect(badProof).to.eq([]);
+        expect(await contract.isEligible(user.address, badProof)).to.eq(false);
+      })
+    })
+
+    it("Should allow not whitelisted users when public registration is open", async () => {
+      const [owner, user1, user2, user3]: SignerWithAddress[] = await ethers.getSigners();
+      await contract.connect(owner).openForPublic();
+      
+      [user1, user2, user3].forEach(async (user) => {
+        const badProof = merkleSetup.tree.getHexProof(keccak256(user.address));
+        // expect(badProof).to.eq([]);
+        expect(await contract.isEligible(user.address, badProof)).to.eq(true);
+      })
+    })
   })
 });
