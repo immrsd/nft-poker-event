@@ -191,6 +191,18 @@ contract Tournament is ERC721Enumerable, Ownable {
         emit NewPlayer(player, _entriesCount);
     }
 
+    function checkEnrollEligibility(
+        address _player,
+        uint256 _entriesCount,
+        bytes32 _merkleProof
+    )
+        public
+        view
+    {
+        require(stage == Stage.REGISTRATION, "Registration not active");
+        require(_entriesCount + balanceOf(_player) <= MAX_ENTRIES_PER_PLAYER, "Entry limit exceeded");
+    }
+
     function showdown() external {
         require(stage == Stage.RUNNING, "Not active yet");
         address player = msg.sender;
