@@ -282,9 +282,13 @@ contract Tournament is ERC721Enumerable, Ownable {
         view 
         returns (uint256) 
     {
-        uint256 balance = address(this).balance;
-        uint256 rake = (balance * RAKE_PERCENTAGE) / 100;
-        return balance - rake;
+        if (didWithdrawRake) {
+            return address(this).balance;
+        } else {
+            uint256 balance = address(this).balance;
+            uint256 rake = (balance * RAKE_PERCENTAGE) / 100;
+            return balance - rake;
+        }
     }
 
     function _registerEntry(
