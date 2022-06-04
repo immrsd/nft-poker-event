@@ -142,6 +142,16 @@ contract Tournament is ERC721Enumerable, Ownable {
     bytes32 public sharedSeed;
     uint256[] public allHands;
 
+    /* Events */
+
+    event PublicRegistrationStart();
+    event TournamentStart();
+    event PrizeMoneyAdded(address indexed user, uint256 addAmount, uint256 newPrizeAmount);
+    event NewPlayer(address indexed player, uint256 entriesCount);
+    event NewChipleader(address indexed player, uint256 indexed handId, uint16 handPower);
+    event HandReveal(address indexed player, uint256 indexed handId, uint16 handPower);
+    event TournamentFinish(address indexed winner, uint256 indexed handId, uint16 handPower, uint256 prizeAmount);
+    event RakeWithdrawal(address owner, uint256 rakeAmount);
 
     /* Constructor */
 
