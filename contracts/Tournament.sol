@@ -173,7 +173,7 @@ contract Tournament is ERC721Enumerable, Ownable {
 
     /* Public functions */
 
-    function enroll(uint256 _entriesCount, bytes32 _merkleProof) external payable {
+    function enroll(uint256 _entriesCount, bytes32[] calldata _merkleProof) external payable {
         require(msg.value >= ENTRANCE_FEE * _entriesCount, "Not enough money");
         address player = msg.sender;
         checkEnrollEligibility(player, _entriesCount, _merkleProof);
@@ -194,7 +194,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     function checkEnrollEligibility(
         address _player,
         uint256 _entriesCount,
-        bytes32 _merkleProof
+        bytes32[] calldata _merkleProof
     )
         public
         view
