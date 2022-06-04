@@ -142,6 +142,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     bytes32 public sharedSeed;
     uint256[] public allHands;
 
+
     /* Constructor */
 
     constructor(
