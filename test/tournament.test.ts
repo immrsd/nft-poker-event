@@ -115,6 +115,7 @@ describe("Token", () => {
       })
     })
   })
+
   describe("Check open for public function", async () => {
 
     let contract: Tournament;
@@ -135,5 +136,18 @@ describe("Token", () => {
       await ownerInstance.openForPublic()
 
       expect(await userInstance.whitelistOnly()).to.eq(false)
+    })
+
+    it("Should be callable only by owner", async () => {
+      const [owner, user] = await ethers.getSigners()
+      const ownerInstance = contract.connect(owner)
+      const userInstance = contract.connect(user)
+
+      expect(await userInstance.whitelistOnly()).to.eq(true);
+
+      await expect(userInstance.openForPublic()).to.be.revertedWith("Ownable: caller is not the owner")
+      await ownerInstance.openForPublic();
+      
+      expect(await userInstance.whitelistOnly()).to.eq(false);
     })
 });
