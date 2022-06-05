@@ -115,4 +115,25 @@ describe("Token", () => {
       })
     })
   })
+  describe("Check open for public function", async () => {
+
+    let contract: Tournament;
+
+    beforeEach(async () => {
+      const [deployer,] = await ethers.getSigners();
+      const merkleSetup = prepareMerkleTree(deployer.address)
+      contract = await deployContract(deployer, merkleSetup.tree.getHexRoot())
+    })
+
+    it("Should change whitelistedOnly value", async () => {
+      const [owner, user] = await ethers.getSigners()
+      const ownerInstance = contract.connect(owner)
+      const userInstance = contract.connect(user)
+
+      expect(await userInstance.whitelistOnly()).to.be.eq(true)
+
+      await ownerInstance.openForPublic()
+
+      expect(await userInstance.whitelistOnly()).to.eq(false)
+    })
 });
