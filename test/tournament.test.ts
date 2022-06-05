@@ -101,7 +101,6 @@ describe("Token", () => {
       const [, user1, user2, user3]: SignerWithAddress[] = await ethers.getSigners();
       [user1, user2, user3].forEach(async (user) => {
         const badProof = merkleSetup.tree.getHexProof(keccak256(user.address));
-        // expect(badProof).to.eq([]);
         expect(await contract.isEligible(user.address, badProof)).to.eq(false);
       })
     })
@@ -112,7 +111,6 @@ describe("Token", () => {
       
       [user1, user2, user3].forEach(async (user) => {
         const badProof = merkleSetup.tree.getHexProof(keccak256(user.address));
-        // expect(badProof).to.eq([]);
         expect(await contract.isEligible(user.address, badProof)).to.eq(true);
       })
     })
