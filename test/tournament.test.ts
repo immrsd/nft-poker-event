@@ -150,4 +150,18 @@ describe("Token", () => {
       
       expect(await userInstance.whitelistOnly()).to.eq(false);
     })
+
+    it("Should be callable only once", async () => {
+      const [owner,] = await ethers.getSigners()
+      const ownerInstance = contract.connect(owner)
+
+      expect(await ownerInstance.whitelistOnly()).to.eq(true);
+
+      await ownerInstance.openForPublic();
+      await expect(ownerInstance.openForPublic()).to.be.revertedWith("Already opened")
+      await expect(ownerInstance.openForPublic()).to.be.revertedWith("Already opened")
+      
+      expect(await ownerInstance.whitelistOnly()).to.eq(false);
+    })
+  })
 });
