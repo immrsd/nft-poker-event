@@ -28,10 +28,9 @@ async function deployContract(
   fee: BigNumber = Defaults.fee, 
   rake: number = Defaults.rake, 
   hash: string = Defaults.seedCheckhash
-): Promise<string> {
+): Promise<Tournament> {
 
-  const instance = await new Tournament__factory(deployer).deploy(fee, rake, hash, merkleRoot);
-  return instance.address;
+  return await new Tournament__factory(deployer).deploy(fee, rake, hash, merkleRoot);
 }
 
 type MerkleSetup = {
@@ -62,8 +61,7 @@ describe("Token", () => {
     beforeEach(async () => {
       const [deployer, user] = await ethers.getSigners()
       const merkleSetup = prepareMerkleTree(deployer.address)
-      const address = await deployContract(deployer, merkleSetup.tree.getHexRoot())
-      contract = new Tournament__factory(user).attach(address)
+      contract = await deployContract(deployer, merkleSetup.tree.getHexRoot())
     })
 
     it("Should has correct init parameters", async () => {
@@ -88,8 +86,7 @@ describe("Token", () => {
     beforeEach(async () => {
       const [deployer, user] = await ethers.getSigners()
       merkleSetup = prepareMerkleTree(deployer.address)
-      const address = await deployContract(deployer, merkleSetup.tree.getHexRoot())
-      contract = new Tournament__factory(user).attach(address)
+      contract = await deployContract(deployer, merkleSetup.tree.getHexRoot())
     })
 
     it("Should allow whitelisted users", async () => {
