@@ -4,18 +4,9 @@ pragma solidity 0.8.14;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-
-enum Rank {
-    TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE
-}
-
-enum Suit {
-    CLUBS, SPADES, DIAMONDS, HEARTS 
-}
-
-enum Combination {
-    ROYAL_FLUSH, STRAIGHT_FLUSH, QUADS, FULL_HOUSE, FLUSH, STRAIGHT, SET, TWO_PAIRS, PAIR, NOTHING
-}
+import "./card-entities.sol";
+import { BitUtils } from "./utils/bit-utils.sol";
+import { CardUtils } from "./utils/card-utils.sol";
 
 enum Stage {
     INITIAL,
@@ -24,100 +15,10 @@ enum Stage {
     FINISHED
 }
 
-struct Card {
-    Rank rank;
-    Suit suit;
-}
-
-struct Hand {
-    bool isChipleader;
-    uint16 power;
-    Combination combination;
-    Card[5] cards;
-    address owner;
-}
-
 struct Chipleader {
     uint16 handPower;
     address player;
     uint256 handId;
-}
-
-library BitUtils {
-
-    function setBit(uint256 value, uint8 position)
-        pure
-        internal
-        returns (uint256)
-    {
-        uint256 result;
-        assembly {
-            let mask := shl(position, 1)
-            result := or(value, mask)
-        }
-        return result;
-    }
-
-    function nullifyBit(uint256 value, uint8 position)
-        pure
-        internal
-        returns (uint256)
-    {
-        uint256 result;
-        assembly {
-            let mask := not(shl(position, 1))
-            result := and(value, mask)
-        }
-        return result;
-    } 
-
-    function isBitSet(uint256 value, uint8 position)
-        pure
-        internal
-        returns (bool)
-    {
-        bool result;
-        assembly {
-            let mask := shl(position, 1)
-            result := gt(and(value, mask), 0)
-        }
-        return result;
-    }
-}
-
-library HandUtils {
-
-    function resolveCards(bytes32 _handSeed)
-        pure
-        internal
-        returns (Card[5] memory)
-    {
-        /* To be implemented */
-    }
-
-    function resolveCombination(Card[5] memory _cards)
-        pure
-        internal
-        returns (Combination combination, uint16 power)
-    {
-        /* To be implemented */
-    }
-
-    function encodeHand(Hand memory _hand)
-        pure
-        internal
-        returns (uint256)
-    {
-        /* To be implemented */
-    }
-
-    function decodeHand(uint256 _data)
-        pure
-        internal
-        returns (Hand memory _hand)
-    {
-        /* To be implemented */
-    }
 }
 
 contract Tournament is ERC721Enumerable, Ownable {
@@ -340,8 +241,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         bytes32 finalSeed = keccak256(abi.encodePacked(handSeed, sharedSeed));
 
         // Resolve hand
-        Card[5] memory cards = HandUtils.resolveCards(finalSeed);
-        (Combination combination, uint16 power) = HandUtils.resolveCombination(cards);
+        Card[5] memory cards = CardUtils.resolveCards(finalSeed);
+        (Combination combination, uint16 power) = CardUtils.resolveCombination(cards);
         Hand memory hand = Hand(
             false,
             power,
@@ -358,7 +259,7 @@ contract Tournament is ERC721Enumerable, Ownable {
             emit NewChipleader(_player, _handId, hand.power);
         }
 
-        allHands[_handId] = HandUtils.encodeHand(hand);
+        allHands[_handId] = CardUtils.encodeHand(hand);
         emit HandReveal(_player, _handId, hand.power);
     }
 
@@ -368,8 +269,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         }
         uint256 id = chipleader.handId;
         uint256 data = allHands[id];
-        Hand memory hand = HandUtils.decodeHand(data);
+        Hand memory hand = CardUtils.decodeHand(data);
         hand.isChipleader = false;
-        allHands[id] = HandUtils.encodeHand(hand);
+        allHands[id] = CardUtils.encodeHand(hand);
     }
 }
