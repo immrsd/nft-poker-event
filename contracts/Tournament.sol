@@ -78,8 +78,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         require(msg.value >= ENTRANCE_FEE * _entriesCount, "Not enough money");
         require(stage == Stage.REGISTRATION, "Registration not active");
         address player = msg.sender;
-        require(_entriesCount + balanceOf(player) <= MAX_ENTRIES_PER_PLAYER, "Entry limit exceeded");
         require(isEligible(player, _merkleProof), "Whitelisted only");
+        require(_entriesCount + balanceOf(player) <= MAX_ENTRIES_PER_PLAYER, "Entry limit exceeded");
 
         bytes32 baseHash = keccak256(abi.encodePacked(player, block.timestamp));
         uint256 totalCount = allHands.length;
@@ -228,6 +228,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         uint256 _handId
     ) private {
         uint256 handHash = uint256(keccak256(abi.encodePacked(_baseHash, _entryIndex)));
+        // First bit of hand hash is used to store 'toBeRevealed' flag (to optimize storage usage and gas consumption)
+        // '1' stands for "hand hasn't been revealed yet", '0' for "hand is already revealed"
         uint256 modifiedHash = BitUtils.setBit(handHash, TO_BE_REVEALED_BIT);
         allHands[_handId] = modifiedHash;
         _safeMint(_player, _handId);
@@ -255,6 +257,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         if (hand.power > chipleader.handPower) {
             _clearCurrentChipleaderStatus();
             hand.isChipleader = true;
+            // Hand power and chipleader's address are stored in single storage slot
+            // We optimize gas consumption, saving brand new struct instead of updating each property
             chipleader = Chipleader(hand.power, _player, _handId);
             emit NewChipleader(_player, _handId, hand.power);
         }
