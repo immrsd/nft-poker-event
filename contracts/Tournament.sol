@@ -134,7 +134,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     
     /* Storage */
 
-    bool public whitelistedOnly = true;
+    bool public whitelistOnly = true;
     bool public didWithdrawRake = false;
     Stage public stage = Stage.INITIAL;
     uint48 public finishTimestamp;
@@ -198,7 +198,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         view
         returns (bool)
     {
-        if (whitelistedOnly) {
+        if (whitelistOnly) {
             bool isWhitelisted = MerkleProof.verify(
                 _merkleProof,
                 merkleRoot,
@@ -273,8 +273,8 @@ contract Tournament is ERC721Enumerable, Ownable {
         external
         onlyOwner
     {
-        require(whitelistedOnly, "Already opened");
-        whitelistedOnly = false;
+        require(whitelistOnly, "Already opened");
+        whitelistOnly = false;
         emit PublicRegistrationStart();
     }
 
