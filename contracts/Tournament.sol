@@ -39,7 +39,7 @@ struct Hand {
 
 struct Chipleader {
     uint16 handPower;
-    address addr;
+    address player;
     uint256 handId;
 }
 
@@ -246,7 +246,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         require(stage == Stage.RUNNING, "Tournament is not active");
         require(uint48(block.timestamp) > finishTimestamp, "Too early");
         Chipleader memory _chipleader = chipleader;
-        require(_chipleader.addr == msg.sender, "You're not chipleader");
+        require(_chipleader.player == msg.sender, "You're not chipleader");
 
         // Update state
         uint256 _prizeAmount = _calculatePrizeAmount();
@@ -256,7 +256,7 @@ contract Tournament is ERC721Enumerable, Ownable {
         // Transfer prize
         (bool isSuccess,) = msg.sender.call{ value: _prizeAmount }("");
         require(isSuccess);
-        emit TournamentFinish(_chipleader.addr, _chipleader.handId, _chipleader.handPower, _prizeAmount);
+        emit TournamentFinish(_chipleader.player, _chipleader.handId, _chipleader.handPower, _prizeAmount);
     }
 
     /* Owner functions */
@@ -363,7 +363,7 @@ contract Tournament is ERC721Enumerable, Ownable {
     }
 
     function _clearCurrentChipleaderStatus() private {
-        if (chipleader.addr == address(0)) {
+        if (chipleader.player == address(0)) {
             return;
         }
         uint256 id = chipleader.handId;
